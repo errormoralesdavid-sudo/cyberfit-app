@@ -24,7 +24,7 @@
     body {
       background-color: var(--bg-color);
       color: var(--text-color);
-      padding-bottom: 70px;
+      padding-bottom: 80px;
     }
 
     header {
@@ -32,11 +32,12 @@
       border-bottom: 2px solid var(--neon-green);
       padding: 15px;
       text-align: center;
+      box-shadow: 0 0 15px rgba(0, 255, 102, 0.2);
     }
 
     h1 {
       color: var(--neon-green);
-      font-size: 1.5rem;
+      font-size: 1.4rem;
       letter-spacing: 2px;
       text-transform: uppercase;
     }
@@ -58,9 +59,59 @@
 
     .card-title {
       color: var(--neon-green);
-      font-size: 1rem;
-      margin-bottom: 10px;
+      font-size: 0.95rem;
+      margin-bottom: 12px;
       text-transform: uppercase;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    /* Barra de Progreso */
+    .progress-bar-bg {
+      background-color: var(--bg-color);
+      border: 1px solid var(--neon-green);
+      border-radius: 20px;
+      height: 22px;
+      width: 100%;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .progress-bar-fill {
+      background-color: var(--neon-green);
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--bg-color);
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+
+    /* Días de Entrenamiento */
+    .days-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      text-align: center;
+    }
+
+    .day-btn {
+      background-color: var(--bg-color);
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+      padding: 8px 2px;
+      border-radius: 5px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+
+    .day-btn.active {
+      border-color: var(--neon-green);
+      color: var(--neon-green);
+      box-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
     }
 
     /* Frase Motivacional */
@@ -69,6 +120,7 @@
       color: #a0c4b2;
       border-left: 3px solid var(--neon-green);
       padding-left: 10px;
+      font-size: 0.9rem;
     }
 
     /* Contador de Agua */
@@ -83,20 +135,20 @@
       background: transparent;
       border: 1px solid var(--neon-green);
       color: var(--neon-green);
-      padding: 8px 15px;
+      padding: 8px 16px;
       border-radius: 5px;
       font-weight: bold;
       cursor: pointer;
     }
 
-    /* Formulario e Inps */
+    /* Formulario */
     .input-group {
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
 
     label {
       display: block;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       margin-bottom: 5px;
       color: #a0c4b2;
     }
@@ -110,7 +162,7 @@
       border-radius: 5px;
     }
 
-    input:focus {
+    input:focus, select:focus {
       outline: none;
       border-color: var(--neon-green);
     }
@@ -125,10 +177,10 @@
       border-radius: 5px;
       cursor: pointer;
       text-transform: uppercase;
-      margin-top: 10px;
+      margin-top: 5px;
     }
 
-    /* Pestañas de Navegación */
+    /* Pestañas */
     .tab-content {
       display: none;
     }
@@ -137,6 +189,7 @@
       display: block;
     }
 
+    /* Navegación Inferior */
     .nav-bar {
       position: fixed;
       bottom: 0;
@@ -145,15 +198,24 @@
       border-top: 1px solid var(--border-color);
       display: flex;
       justify-content: space-around;
-      padding: 10px 0;
+      padding: 8px 0;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
     }
 
     .nav-item {
-      color: var(--text-color);
+      color: #7a9e8c;
       text-decoration: none;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       text-align: center;
       cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .nav-item .icon {
+      font-size: 1.2rem;
     }
 
     .nav-item.active {
@@ -161,94 +223,165 @@
       font-weight: bold;
     }
 
-    /* Lista Ejercicios */
     .exercise-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 0;
+      padding: 10px 0;
       border-bottom: 1px solid var(--border-color);
+    }
+
+    .checkbox-custom {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--neon-green);
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>CYBERFIT APP</h1>
+    <h1>⚡ CYBERFIT APP ⚡</h1>
   </header>
 
   <div class="container">
     
-    <!-- PESTAÑA: INICIO -->
+    <!-- PESTAÑA 1: INICIO -->
     <div id="tab-inicio" class="tab-content active">
       <div class="card">
-        <div class="card-title">Cita Cyberpunk del Día</div>
-        <p class="quote-box" id="daily-quote">"El sudor hoy es el rendimiento del mañana."</p>
+        <div class="card-title">Progreso Diario</div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progress-fill">0%</div>
+        </div>
       </div>
 
       <div class="card">
-        <div class="card-title">Hidratación Diaria</div>
+        <div class="card-title">Hábitos Diarios</div>
+        <div class="exercise-item">
+          <span>🥛 Tomar Batido de Proteína</span>
+          <input type="checkbox" class="checkbox-custom habit-check" onclick="calcProgress()">
+        </div>
+        <div class="exercise-item">
+          <span>🏋️ Completar Entrenamiento</span>
+          <input type="checkbox" class="checkbox-custom habit-check" onclick="calcProgress()">
+        </div>
+        <div class="exercise-item">
+          <span>📏 Registrar Peso / Medidas</span>
+          <input type="checkbox" class="checkbox-custom habit-check" onclick="calcProgress()">
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">💧 Hidratación Diaria</div>
         <p>Vasos consumidos: <span id="water-count" style="color:var(--neon-green); font-weight:bold;">0</span> / 8</p>
         <div class="water-controls">
           <button class="counter-btn" onclick="updateWater(-1)">-</button>
-          <button class="counter-btn" onclick="updateWater(1)">+ Tomar Agua</button>
+          <button class="counter-btn" onclick="updateWater(1)">+1 Vaso de Agua</button>
         </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔔 Alerta de Batido</div>
+        <div class="input-group">
+          <select>
+            <option>9:00 a.m.</option>
+            <option>3:00 p.m.</option>
+            <option>8:00 p.m.</option>
+          </select>
+        </div>
+        <button class="btn-action">Configurar Recordatorio</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🤖 Frase Cyberpunk del Día</div>
+        <p class="quote-box">"El dolor es solo un sesgo de datos de tu red neuronal. Supéralo."</p>
       </div>
     </div>
 
-    <!-- PESTAÑA: RUTINAS -->
+    <!-- PESTAÑA 2: RUTINAS -->
     <div id="tab-rutinas" class="tab-content">
       <div class="card">
-        <div class="card-title">Rutina de Hoy</div>
+        <div class="card-title">📅 Días de Entrenamiento</div>
+        <div class="days-grid">
+          <button class="day-btn active">L</button>
+          <button class="day-btn">M</button>
+          <button class="day-btn active">X</button>
+          <button class="day-btn">J</button>
+          <button class="day-btn active">V</button>
+          <button class="day-btn">S</button>
+          <button class="day-btn">D</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">💪 Rutina de Hoy</div>
         <div id="routine-list">
           <div class="exercise-item">
-            <span>4x12 Press de Banca</span>
-            <input type="checkbox" style="width:auto;">
+            <span>🏋️‍♂️ 4x12 Press de Banca</span>
+            <input type="checkbox" class="checkbox-custom">
+          </div>
+          <div class="exercise-item">
+            <span>🦵 4x10 Sentadillas con Barra</span>
+            <input type="checkbox" class="checkbox-custom">
           </div>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-title">Añadir / Editar Ejercicio</div>
+        <div class="card-title">✏️ Personalizar Ejercicio</div>
         <div class="input-group">
           <label>Nombre del Ejercicio y Series</label>
-          <input type="text" id="exercise-input" placeholder="Ej: 3x10 Sentadillas">
+          <input type="text" id="exercise-input" placeholder="Ej: 3x15 Dominadas">
         </div>
-        <button class="btn-action" onclick="addExercise()">Guardar Ejercicio</button>
+        <button class="btn-action" onclick="addExercise()">Agregar Ejercicio</button>
       </div>
     </div>
 
-    <!-- PESTAÑA: DESCANSO -->
+    <!-- PESTAÑA 3: DESCANSO -->
     <div id="tab-descanso" class="tab-content">
       <div class="card" style="text-align:center;">
-        <div class="card-title">Temporizador de Descanso</div>
-        <h2 id="timer-display" style="font-size:2.5rem; color:var(--neon-green); margin:15px 0;">01:30</h2>
-        <button class="btn-action" onclick="startTimer(90)">Iniciar 90s</button>
-        <button class="btn-action" style="background:transparent; border:1px solid var(--neon-green); color:var(--neon-green);" onclick="startTimer(60)">Iniciar 60s</button>
+        <div class="card-title">⏱️ Descanso Entre Series</div>
+        <h2 id="timer-display" style="font-size:2.8rem; color:var(--neon-green); margin:15px 0;">01:30</h2>
+        <button class="btn-action" onclick="startTimer(90)">Iniciar 90s Descanso</button>
+        <button class="btn-action" style="background:transparent; border:1px solid var(--neon-green); color:var(--neon-green);" onclick="startTimer(60)">Iniciar 60s Descanso</button>
       </div>
     </div>
 
-    <!-- PESTAÑA: REGISTRO -->
+    <!-- PESTAÑA 4: REGISTRO -->
     <div id="tab-registro" class="tab-content">
       <div class="card">
-        <div class="card-title">Registro Corporal</div>
-        <div class="input-group"><label>Peso Actual (kg)</label><input type="number" step="0.1" placeholder="Ej. 78.5"></div>
-        <div class="input-group"><label>Altura (cm)</label><input type="number" placeholder="Ej. 175"></div>
-        <div class="input-group"><label>Medida de Brazos (cm)</label><input type="number" step="0.1"></div>
-        <div class="input-group"><label>Medida de Piernas (cm)</label><input type="number" step="0.1"></div>
-        <div class="input-group"><label>Medida de Cintura (cm)</label><input type="number" step="0.1"></div>
+        <div class="card-title">📊 Registro Corporal Completo</div>
+        <div class="input-group"><label>⚖️ Peso Actual (kg)</label><input type="number" step="0.1" placeholder="Ej. 78.5"></div>
+        <div class="input-group"><label>📏 Altura (cm)</label><input type="number" placeholder="Ej. 175"></div>
+        <div class="input-group"><label>💪 Brazos (cm)</label><input type="number" step="0.1" placeholder="Ej. 35"></div>
+        <div class="input-group"><label>🦵 Piernas (cm)</label><input type="number" step="0.1" placeholder="Ej. 58"></div>
+        <div class="input-group"><label>📐 Cintura / Medida (cm)</label><input type="number" step="0.1" placeholder="Ej. 80"></div>
+        <div class="input-group"><label>🍑 Glúteos (cm)</label><input type="number" step="0.1" placeholder="Ej. 95"></div>
         <button class="btn-action">Guardar Métricas</button>
       </div>
     </div>
 
   </div>
 
-  <!-- NAVEGACIÓN INFERIOR -->
+  <!-- NAVEGACIÓN INFERIOR CON EMOJIS / ICONOS -->
   <nav class="nav-bar">
-    <div class="nav-item active" onclick="switchTab('inicio', this)">Inicio</div>
-    <div class="nav-item" onclick="switchTab('rutinas', this)">Rutinas</div>
-    <div class="nav-item" onclick="switchTab('descanso', this)">Descanso</div>
-    <div class="nav-item" onclick="switchTab('registro', this)">Registro</div>
+    <div class="nav-item active" onclick="switchTab('inicio', this)">
+      <span class="icon">⚡</span>
+      <span>Inicio</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('rutinas', this)">
+      <span class="icon">🏋️</span>
+      <span>Rutinas</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('descanso', this)">
+      <span class="icon">⏱️</span>
+      <span>Descanso</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('registro', this)">
+      <span class="icon">📊</span>
+      <span>Registro</span>
+    </div>
   </nav>
 
   <script>
@@ -257,6 +390,16 @@
       document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
       document.getElementById('tab-' + tabId).classList.add('active');
       element.classList.add('active');
+    }
+
+    function calcProgress() {
+      const checks = document.querySelectorAll('.habit-check');
+      let checked = 0;
+      checks.forEach(c => { if (c.checked) checked++; });
+      const percent = Math.round((checked / checks.length) * 100);
+      const fill = document.getElementById('progress-fill');
+      fill.style.width = percent + '%';
+      fill.innerText = percent + '%';
     }
 
     let waterCount = 0;
@@ -271,7 +414,7 @@
         const list = document.getElementById('routine-list');
         const item = document.createElement('div');
         item.className = 'exercise-item';
-        item.innerHTML = `<span>${input.value}</span><input type="checkbox" style="width:auto;">`;
+        item.innerHTML = `<span>⚡ ${input.value}</span><input type="checkbox" class="checkbox-custom">`;
         list.appendChild(item);
         input.value = '';
       }
