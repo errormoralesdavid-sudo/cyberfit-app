@@ -294,7 +294,7 @@
           <input type="checkbox" id="habit-0" class="checkbox-custom habit-check" onclick="calcProgress()">
         </div>
         <div class="exercise-item">
-          <span>🏋️ Completar Entrenamiento</span>
+          <span>🏋️ Completar Entrenamiento del Día</span>
           <input type="checkbox" id="habit-1" class="checkbox-custom habit-check" onclick="calcProgress()">
         </div>
         <div class="exercise-item">
@@ -319,6 +319,7 @@
           <input type="time" id="shake-time" value="09:00">
         </div>
         <button class="btn-action" onclick="setShakeAlert()">Configurar Recordatorio</button>
+        <button id="btn-stop-shake-alarm" class="btn-action btn-stop" onclick="stopAlarmLoop()">🚨 Detener Alerta</button>
       </div>
 
       <div class="card">
@@ -330,20 +331,20 @@
     <!-- PESTAÑA 2: RUTINAS -->
     <div id="tab-rutinas" class="tab-content">
       <div class="card">
-        <div class="card-title">📅 Días de Entrenamiento</div>
+        <div class="card-title">📅 Día de Entrenamiento Seleccionado</div>
         <div class="days-grid">
-          <button class="day-btn" onclick="toggleDay(this, 0)">L</button>
-          <button class="day-btn" onclick="toggleDay(this, 1)">M</button>
-          <button class="day-btn" onclick="toggleDay(this, 2)">X</button>
-          <button class="day-btn" onclick="toggleDay(this, 3)">J</button>
-          <button class="day-btn" onclick="toggleDay(this, 4)">V</button>
-          <button class="day-btn" onclick="toggleDay(this, 5)">S</button>
-          <button class="day-btn" onclick="toggleDay(this, 6)">D</button>
+          <button class="day-btn" onclick="selectDay(0, this)">L</button>
+          <button class="day-btn" onclick="selectDay(1, this)">M</button>
+          <button class="day-btn" onclick="selectDay(2, this)">X</button>
+          <button class="day-btn" onclick="selectDay(3, this)">J</button>
+          <button class="day-btn" onclick="selectDay(4, this)">V</button>
+          <button class="day-btn" onclick="selectDay(5, this)">S</button>
+          <button class="day-btn" onclick="selectDay(6, this)">D</button>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-title">💪 Rutina de Hoy</div>
+        <div class="card-title" id="current-day-title">💪 Rutina de Hoy</div>
         <div id="routine-list"></div>
       </div>
 
@@ -351,9 +352,9 @@
         <div class="card-title">✏️ Personalizar Ejercicio</div>
         <div class="input-group">
           <label>Nombre del Ejercicio y Series</label>
-          <input type="text" id="exercise-input" placeholder="Ej: 🤸 3x15 Dominadas">
+          <input type="text" id="exercise-input" placeholder="Ej: 🤸 3x15 Press Banca">
         </div>
-        <button class="btn-action" onclick="addExercise()">Agregar Ejercicio</button>
+        <button class="btn-action" onclick="addExercise()">Agregar Ejercicio a Este Día</button>
       </div>
     </div>
 
@@ -363,7 +364,7 @@
         <div class="card-title">⏱️ Descanso Entre Series</div>
         <h2 id="timer-display" style="font-size:2.8rem; color:var(--neon-green); margin:15px 0;">01:30</h2>
         <button class="btn-action" onclick="startTimer(90)">Iniciar 90s Descanso</button>
-        <button class="btn-action" style="background:transparent; border:1px solid var(--neon-green); color:var(--neon-green);" onclick="startTimer(60)">Iniciar 60s Descanso</button>
+        <button class="btn-action" style="background:transparent; border:1px solid var(--neon-green); color:var(--neon-green); margin-top:8px;" onclick="startTimer(60)">Iniciar 60s Descanso</button>
         <button id="btn-stop-alarm" class="btn-action btn-stop" onclick="stopAlarmLoop()">🚨 Detener Alerta</button>
       </div>
     </div>
@@ -405,9 +406,10 @@
   </nav>
 
   <script>
-    // Audio en Bucle
+    // Audio y Sistema de Alertas
     let audioLoopInterval = null;
     let audioCtx = null;
+    let shakeCheckInterval = null;
 
     function playAlarmTone() {
       try {
@@ -431,6 +433,7 @@
       playAlarmTone();
       audioLoopInterval = setInterval(playAlarmTone, 600);
       document.getElementById('btn-stop-alarm').style.display = 'block';
+      document.getElementById('btn-stop-shake-alarm').style.display = 'block';
     }
 
     function stopAlarmLoop() {
@@ -439,6 +442,7 @@
         audioLoopInterval = null;
       }
       document.getElementById('btn-stop-alarm').style.display = 'none';
+      document.getElementById('btn-stop-shake-alarm').style.display = 'none';
     }
 
     function switchTab(tabId, element) {
@@ -448,18 +452,20 @@
       element.classList.add('active');
     }
 
-    // Comprobación de cambio de día para reinicio diario de hábitos
+    // Reinicio diario automático
     function checkDailyReset() {
       const today = new Date().toDateString();
       const lastVisit = localStorage.getItem('cyberfit_last_date');
       if (lastVisit !== today) {
         localStorage.setItem('cyberfit_last_date', today);
-        localStorage.setItem('cyberfit_habits', JSON.stringify([false, false, true])); // Las medidas se mantienen activadas
+        localStorage.setItem('cyberfit_habits', JSON.stringify([false, false, true]));
         localStorage.setItem('cyberfit_water', '0');
+        // Limpiar ejercicios marcados de días previos
+        localStorage.removeItem('cyberfit_completed_ex_' + today);
       }
     }
 
-    // Guardado de Estado Corporal
+    // Métricas Corporales
     function saveMetrics() {
       const metrics = {
         peso: document.getElementById('m-peso').value,
@@ -510,66 +516,119 @@
       document.getElementById('water-ml').innerText = waterCount * 250;
     }
 
-    // Días de Entrenamiento
-    function toggleDay(btn, index) {
-      btn.classList.toggle('active');
-      let savedDays = JSON.parse(localStorage.getItem('cyberfit_days') || '[true,false,true,false,true,false,false]');
-      savedDays[index] = btn.classList.contains('active');
-      localStorage.setItem('cyberfit_days', JSON.stringify(savedDays));
+    // Rutinas por Día de la Semana
+    const dayNames = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+    let currentSelectedDay = (new Date().getDay() + 6) % 7; // Día actual (0=Lunes, 6=Domingo)
+
+    function selectDay(dayIdx, btnEl) {
+      currentSelectedDay = dayIdx;
+      document.querySelectorAll('.days-grid .day-btn').forEach(b => b.classList.remove('active'));
+      if (btnEl) {
+        btnEl.classList.add('active');
+      } else {
+        const btns = document.querySelectorAll('.days-grid .day-btn');
+        if (btns[dayIdx]) btns[dayIdx].classList.add('active');
+      }
+      document.getElementById('current-day-title').innerText = `💪 Rutina del ${dayNames[dayIdx]}`;
+      renderExercises();
     }
 
-    function loadDays() {
-      let savedDays = JSON.parse(localStorage.getItem('cyberfit_days') || '[true,false,true,false,true,false,false]');
-      const btns = document.querySelectorAll('.days-grid .day-btn');
-      btns.forEach((btn, idx) => {
-        if (savedDays[idx]) btn.classList.add('active');
-        else btn.classList.remove('active');
-      });
+    function getWeeklyRoutines() {
+      return JSON.parse(localStorage.getItem('cyberfit_weekly_routines') || '{"0":[],"1":[],"2":[],"3":["🏋️‍♂️ 4x12 Press de Banca","🦵 4x10 Sentadillas"],"4":[],"5":[],"6":[]}');
     }
 
-    // Rutinas con eliminación
-    let exercises = JSON.parse(localStorage.getItem('cyberfit_exercises') || '["🏋️‍♂️ 4x12 Press de Banca", "🦵 4x10 Sentadillas con Barra", "🦵 4x5 Sentadillas"]');
-    
     function renderExercises() {
+      const routines = getWeeklyRoutines();
+      const exercises = routines[currentSelectedDay] || [];
       const list = document.getElementById('routine-list');
       list.innerHTML = '';
+
+      const todayStr = new Date().toDateString();
+      const completedEx = JSON.parse(localStorage.getItem('cyberfit_completed_ex_' + todayStr) || '{}');
+
+      if (exercises.length === 0) {
+        list.innerHTML = '<p style="color:#7a9e8c; font-size:0.85rem; padding:10px 0;">No hay ejercicios guardados para este día.</p>';
+        return;
+      }
+
       exercises.forEach((ex, idx) => {
         const item = document.createElement('div');
         item.className = 'exercise-item';
+        const isChecked = completedEx[`${currentSelectedDay}_${idx}`] ? 'checked' : '';
         item.innerHTML = `
           <span>${ex}</span>
           <div class="exercise-actions">
-            <input type="checkbox" class="checkbox-custom">
+            <input type="checkbox" class="checkbox-custom" ${isChecked} onchange="toggleExerciseCheck(${currentSelectedDay}, ${idx}, this.checked)">
             <button class="btn-delete" onclick="deleteExercise(${idx})" title="Eliminar ejercicio">❌</button>
           </div>`;
         list.appendChild(item);
       });
     }
 
+    function toggleExerciseCheck(dayIdx, exIdx, isChecked) {
+      const todayStr = new Date().toDateString();
+      const completedEx = JSON.parse(localStorage.getItem('cyberfit_completed_ex_' + todayStr) || '{}');
+      completedEx[`${dayIdx}_${exIdx}`] = isChecked;
+      localStorage.setItem('cyberfit_completed_ex_' + todayStr, JSON.stringify(completedEx));
+
+      // Si todos los ejercicios del día están listos, marcar el hábito de entrenamiento
+      const routines = getWeeklyRoutines();
+      const dayEx = routines[dayIdx] || [];
+      let allDone = dayEx.length > 0;
+      dayEx.forEach((_, i) => {
+        if (!completedEx[`${dayIdx}_${i}`]) allDone = false;
+      });
+
+      const todayIdx = (new Date().getDay() + 6) % 7;
+      if (dayIdx === todayIdx) {
+        document.getElementById('habit-1').checked = allDone;
+        calcProgress();
+      }
+    }
+
     function addExercise() {
       const input = document.getElementById('exercise-input');
       if (input.value.trim() !== '') {
-        exercises.push(input.value.trim());
-        localStorage.setItem('cyberfit_exercises', JSON.stringify(exercises));
+        const routines = getWeeklyRoutines();
+        if (!routines[currentSelectedDay]) routines[currentSelectedDay] = [];
+        routines[currentSelectedDay].push(input.value.trim());
+        localStorage.setItem('cyberfit_weekly_routines', JSON.stringify(routines));
         renderExercises();
         input.value = '';
       }
     }
 
     function deleteExercise(index) {
-      exercises.splice(index, 1);
-      localStorage.setItem('cyberfit_exercises', JSON.stringify(exercises));
-      renderExercises();
+      const routines = getWeeklyRoutines();
+      if (routines[currentSelectedDay]) {
+        routines[currentSelectedDay].splice(index, 1);
+        localStorage.setItem('cyberfit_weekly_routines', JSON.stringify(routines));
+        renderExercises();
+      }
     }
 
-    // Alerta de batido
+    // Alerta de Batido con Sonido en Bucle
     function setShakeAlert() {
       const timeVal = document.getElementById('shake-time').value;
       localStorage.setItem('cyberfit_shaketime', timeVal);
       alert(`Recordatorio configurado para las ${timeVal}`);
+      startShakeTimerWatcher();
     }
 
-    // Temporizador
+    function startShakeTimerWatcher() {
+      if (shakeCheckInterval) clearInterval(shakeCheckInterval);
+      shakeCheckInterval = setInterval(() => {
+        const savedTime = localStorage.getItem('cyberfit_shaketime');
+        if (!savedTime) return;
+        const now = new Date();
+        const currentHM = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+        if (currentHM === savedTime && now.getSeconds() === 0) {
+          startAlarmLoop();
+        }
+      }, 1000);
+    }
+
+    // Temporizador de Descanso
     let timerInterval;
     function startTimer(seconds) {
       clearInterval(timerInterval);
@@ -591,8 +650,9 @@
     window.onload = function() {
       checkDailyReset();
       loadMetrics();
-      loadDays();
-      renderExercises();
+      
+      const todayIdx = (new Date().getDay() + 6) % 7;
+      selectDay(todayIdx, null);
 
       waterCount = parseInt(localStorage.getItem('cyberfit_water') || '0');
       updateWater(0);
@@ -605,7 +665,10 @@
       calcProgress();
 
       const savedTime = localStorage.getItem('cyberfit_shaketime');
-      if (savedTime) document.getElementById('shake-time').value = savedTime;
+      if (savedTime) {
+        document.getElementById('shake-time').value = savedTime;
+        startShakeTimerWatcher();
+      }
     };
   </script>
 </body>
