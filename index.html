@@ -117,7 +117,6 @@
       box-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
     }
 
-    /* Frase Motivacional */
     .quote-box {
       font-style: italic;
       color: #a0c4b2;
@@ -126,7 +125,6 @@
       font-size: 0.9rem;
     }
 
-    /* Contador de Agua */
     .water-controls {
       display: flex;
       align-items: center;
@@ -144,7 +142,6 @@
       cursor: pointer;
     }
 
-    /* Formulario */
     .input-group {
       margin-bottom: 12px;
     }
@@ -196,7 +193,6 @@
       to { transform: scale(1.02); }
     }
 
-    /* Pestañas */
     .tab-content {
       display: none;
     }
@@ -205,7 +201,6 @@
       display: block;
     }
 
-    /* Navegación Inferior */
     .nav-bar {
       position: fixed;
       bottom: 0;
@@ -268,6 +263,11 @@
       accent-color: var(--neon-green);
       cursor: pointer;
     }
+
+    .flex-row {
+      display: flex;
+      gap: 10px;
+    }
   </style>
 </head>
 <body>
@@ -288,6 +288,11 @@
       </div>
 
       <div class="card">
+        <div class="card-title">🔔 Notificaciones del Sistema</div>
+        <button class="btn-action" style="background:transparent; border:1px solid var(--neon-green); color:var(--neon-green);" onclick="requestNotificationPermission()">Activar Notificaciones Nativas</button>
+      </div>
+
+      <div class="card">
         <div class="card-title">Hábitos Diarios</div>
         <div class="exercise-item">
           <span>🥛 Tomar Batido de Proteína</span>
@@ -304,11 +309,25 @@
       </div>
 
       <div class="card">
-        <div class="card-title">💧 Hidratación Diaria</div>
-        <p>Vasos: <span id="water-count" style="color:var(--neon-green); font-weight:bold;">0</span> / 8 (<span id="water-ml">0</span> / 2000 ml)</p>
+        <div class="card-title">💧 Hidratación Personalizada</div>
+        <p>Progreso: <span id="water-ml" style="color:var(--neon-green); font-weight:bold;">0</span> / <span id="water-target-display">2000</span> ml</p>
+        
         <div class="water-controls">
-          <button class="counter-btn" onclick="updateWater(-1)">-</button>
-          <button class="counter-btn" onclick="updateWater(1)">+1 Vaso (250ml)</button>
+          <button class="counter-btn" onclick="updateWater(-1)">- Toma</button>
+          <button class="counter-btn" onclick="updateWater(1)">+ <span id="btn-portion-label">250</span> ml</button>
+        </div>
+
+        <div style="margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 10px;">
+          <div class="flex-row">
+            <div class="input-group" style="flex:1;">
+              <label>Pote/Vaso (ml):</label>
+              <input type="number" id="water-portion" value="250" onchange="saveWaterConfig()">
+            </div>
+            <div class="input-group" style="flex:1;">
+              <label>Meta Diaria (ml):</label>
+              <input type="number" id="water-target" value="2000" onchange="saveWaterConfig()">
+            </div>
+          </div>
         </div>
       </div>
 
@@ -341,6 +360,15 @@
           <button class="day-btn" onclick="selectDay(5, this)">S</button>
           <button class="day-btn" onclick="selectDay(6, this)">D</button>
         </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">⏰ Hora de Entrenamiento (Alarma)</div>
+        <div class="input-group">
+          <label>Hora para Entrenar Hoy:</label>
+          <input type="time" id="workout-time" value="17:00">
+        </div>
+        <button class="btn-action" onclick="setWorkoutAlert()">Guardar Alerta de Entrenamiento</button>
       </div>
 
       <div class="card">
@@ -406,11 +434,33 @@
   </nav>
 
   <script>
-    // Audio y Sistema de Alertas
     let audioLoopInterval = null;
     let audioCtx = null;
-    let shakeCheckInterval = null;
+    let mainTimerWatcher = null;
 
+    // Permisos para Notificaciones Nativas
+    function requestNotificationPermission() {
+      if ("Notification" in window) {
+        Notification.requestPermission().then(permission => {
+          if (permission === "granted") {
+            alert("¡Notificaciones activadas con éxito!");
+            new Notification("CyberFit App", { body: "Las notificaciones están configuradas." });
+          } else {
+            alert("No se otorgaron permisos de notificación.");
+          }
+        });
+      } else {
+        alert("Tu navegador no soporta notificaciones.");
+      }
+    }
+
+    function sendNativeNotification(title, message) {
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(title, { body: message });
+      }
+    }
+
+    // Audio de Alarma
     function playAlarmTone() {
       try {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -452,20 +502,17 @@
       element.classList.add('active');
     }
 
-    // Reinicio diario automático
     function checkDailyReset() {
       const today = new Date().toDateString();
       const lastVisit = localStorage.getItem('cyberfit_last_date');
       if (lastVisit !== today) {
         localStorage.setItem('cyberfit_last_date', today);
         localStorage.setItem('cyberfit_habits', JSON.stringify([false, false, true]));
-        localStorage.setItem('cyberfit_water', '0');
-        // Limpiar ejercicios marcados de días previos
+        localStorage.setItem('cyberfit_water_current', '0');
         localStorage.removeItem('cyberfit_completed_ex_' + today);
       }
     }
 
-    // Métricas Corporales
     function saveMetrics() {
       const metrics = {
         peso: document.getElementById('m-peso').value,
@@ -492,7 +539,6 @@
       }
     }
 
-    // Hábitos e Hidratación
     function calcProgress() {
       const checks = document.querySelectorAll('.habit-check');
       let checked = 0;
@@ -508,17 +554,38 @@
       fill.innerText = percent + '%';
     }
 
-    let waterCount = 0;
-    function updateWater(val) {
-      waterCount = Math.max(0, waterCount + val);
-      localStorage.setItem('cyberfit_water', waterCount);
-      document.getElementById('water-count').innerText = waterCount;
-      document.getElementById('water-ml').innerText = waterCount * 250;
+    // Configuración y Control de Agua Personalizado
+    let waterCurrent = 0;
+
+    function saveWaterConfig() {
+      const portion = document.getElementById('water-portion').value;
+      const target = document.getElementById('water-target').value;
+      localStorage.setItem('cyberfit_water_portion', portion);
+      localStorage.setItem('cyberfit_water_target', target);
+      document.getElementById('btn-portion-label').innerText = portion;
+      document.getElementById('water-target-display').innerText = target;
+      updateWater(0);
     }
 
-    // Rutinas por Día de la Semana
+    function loadWaterConfig() {
+      const portion = localStorage.getItem('cyberfit_water_portion') || '250';
+      const target = localStorage.getItem('cyberfit_water_target') || '2000';
+      document.getElementById('water-portion').value = portion;
+      document.getElementById('water-target').value = target;
+      document.getElementById('btn-portion-label').innerText = portion;
+      document.getElementById('water-target-display').innerText = target;
+    }
+
+    function updateWater(multiplier) {
+      const portion = parseInt(document.getElementById('water-portion').value || '250');
+      waterCurrent = Math.max(0, waterCurrent + (portion * multiplier));
+      localStorage.setItem('cyberfit_water_current', waterCurrent);
+      document.getElementById('water-ml').innerText = waterCurrent;
+    }
+
+    // Rutinas y Selección de Días
     const dayNames = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-    let currentSelectedDay = (new Date().getDay() + 6) % 7; // Día actual (0=Lunes, 6=Domingo)
+    let currentSelectedDay = (new Date().getDay() + 6) % 7;
 
     function selectDay(dayIdx, btnEl) {
       currentSelectedDay = dayIdx;
@@ -530,6 +597,10 @@
         if (btns[dayIdx]) btns[dayIdx].classList.add('active');
       }
       document.getElementById('current-day-title').innerText = `💪 Rutina del ${dayNames[dayIdx]}`;
+      
+      const savedWorkoutTimes = JSON.parse(localStorage.getItem('cyberfit_workout_times') || '{}');
+      document.getElementById('workout-time').value = savedWorkoutTimes[dayIdx] || '17:00';
+
       renderExercises();
     }
 
@@ -571,7 +642,6 @@
       completedEx[`${dayIdx}_${exIdx}`] = isChecked;
       localStorage.setItem('cyberfit_completed_ex_' + todayStr, JSON.stringify(completedEx));
 
-      // Si todos los ejercicios del día están listos, marcar el hábito de entrenamiento
       const routines = getWeeklyRoutines();
       const dayEx = routines[dayIdx] || [];
       let allDone = dayEx.length > 0;
@@ -607,28 +677,46 @@
       }
     }
 
-    // Alerta de Batido con Sonido en Bucle
+    // Alarmas
     function setShakeAlert() {
       const timeVal = document.getElementById('shake-time').value;
       localStorage.setItem('cyberfit_shaketime', timeVal);
-      alert(`Recordatorio configurado para las ${timeVal}`);
-      startShakeTimerWatcher();
+      alert(`Alerta de batido guardada para las ${timeVal}`);
     }
 
-    function startShakeTimerWatcher() {
-      if (shakeCheckInterval) clearInterval(shakeCheckInterval);
-      shakeCheckInterval = setInterval(() => {
-        const savedTime = localStorage.getItem('cyberfit_shaketime');
-        if (!savedTime) return;
+    function setWorkoutAlert() {
+      const timeVal = document.getElementById('workout-time').value;
+      const savedWorkoutTimes = JSON.parse(localStorage.getItem('cyberfit_workout_times') || '{}');
+      savedWorkoutTimes[currentSelectedDay] = timeVal;
+      localStorage.setItem('cyberfit_workout_times', JSON.stringify(savedWorkoutTimes));
+      alert(`Alerta de entrenamiento guardada para el ${dayNames[currentSelectedDay]} a las ${timeVal}`);
+    }
+
+    function startGlobalTimerWatcher() {
+      if (mainTimerWatcher) clearInterval(mainTimerWatcher);
+      mainTimerWatcher = setInterval(() => {
         const now = new Date();
         const currentHM = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
-        if (currentHM === savedTime && now.getSeconds() === 0) {
+        const todayIdx = (now.getDay() + 6) % 7;
+
+        // Verificar Alerta de Batido
+        const shakeTime = localStorage.getItem('cyberfit_shaketime');
+        if (shakeTime && currentHM === shakeTime && now.getSeconds() === 0) {
+          sendNativeNotification("CyberFit App", "🥛 ¡Es hora de tomar tu batido de proteína!");
+          startAlarmLoop();
+        }
+
+        // Verificar Alerta de Entrenamiento
+        const savedWorkoutTimes = JSON.parse(localStorage.getItem('cyberfit_workout_times') || '{}');
+        const todayWorkoutTime = savedWorkoutTimes[todayIdx];
+        if (todayWorkoutTime && currentHM === todayWorkoutTime && now.getSeconds() === 0) {
+          sendNativeNotification("CyberFit App", "🏋️ ¡Hora de entrenar! Revisa tu rutina del día.");
           startAlarmLoop();
         }
       }, 1000);
     }
 
-    // Temporizador de Descanso
+    // Temporizador Descanso
     let timerInterval;
     function startTimer(seconds) {
       clearInterval(timerInterval);
@@ -641,21 +729,23 @@
         display.innerText = `${mins}:${secs}`;
         if (--time < 0) {
           clearInterval(timerInterval);
+          sendNativeNotification("CyberFit App", "⏱️ ¡Descanso terminado! A dar la siguiente serie.");
           startAlarmLoop();
         }
       }, 1000);
     }
 
-    // Carga inicial
+    // Inicialización
     window.onload = function() {
       checkDailyReset();
       loadMetrics();
+      loadWaterConfig();
       
       const todayIdx = (new Date().getDay() + 6) % 7;
       selectDay(todayIdx, null);
 
-      waterCount = parseInt(localStorage.getItem('cyberfit_water') || '0');
-      updateWater(0);
+      waterCurrent = parseInt(localStorage.getItem('cyberfit_water_current') || '0');
+      document.getElementById('water-ml').innerText = waterCurrent;
       
       const savedHabits = JSON.parse(localStorage.getItem('cyberfit_habits') || '[false,false,true]');
       savedHabits.forEach((st, idx) => {
@@ -664,11 +754,12 @@
       });
       calcProgress();
 
-      const savedTime = localStorage.getItem('cyberfit_shaketime');
-      if (savedTime) {
-        document.getElementById('shake-time').value = savedTime;
-        startShakeTimerWatcher();
+      const savedShakeTime = localStorage.getItem('cyberfit_shaketime');
+      if (savedShakeTime) {
+        document.getElementById('shake-time').value = savedShakeTime;
       }
+
+      startGlobalTimerWatcher();
     };
   </script>
 </body>
