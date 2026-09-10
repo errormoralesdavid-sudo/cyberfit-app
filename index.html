@@ -106,11 +106,13 @@
       border-radius: 5px;
       font-size: 0.75rem;
       cursor: pointer;
+      user-select: none;
     }
 
     .day-btn.active {
       border-color: var(--neon-green);
       color: var(--neon-green);
+      background-color: #122b1d;
       box-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
     }
 
@@ -260,37 +262,34 @@
         <div class="card-title">Hábitos Diarios</div>
         <div class="exercise-item">
           <span>🥛 Tomar Batido de Proteína</span>
-          <input type="checkbox" class="checkbox-custom habit-check" onclick="calcProgress()">
+          <input type="checkbox" id="habit-0" class="checkbox-custom habit-check" onclick="calcProgress()">
         </div>
         <div class="exercise-item">
           <span>🏋️ Completar Entrenamiento</span>
-          <input type="checkbox" class="checkbox-custom habit-check" onclick="calcProgress()">
+          <input type="checkbox" id="habit-1" class="checkbox-custom habit-check" onclick="calcProgress()">
         </div>
         <div class="exercise-item">
           <span>📏 Registrar Peso / Medidas</span>
-          <input type="checkbox" class="checkbox-custom habit-check" onclick="calcProgress()">
+          <input type="checkbox" id="habit-2" class="checkbox-custom habit-check" onclick="calcProgress()">
         </div>
       </div>
 
       <div class="card">
         <div class="card-title">💧 Hidratación Diaria</div>
-        <p>Vasos consumidos: <span id="water-count" style="color:var(--neon-green); font-weight:bold;">0</span> / 8</p>
+        <p>Vasos: <span id="water-count" style="color:var(--neon-green); font-weight:bold;">0</span> / 8 (<span id="water-ml">0</span> / 2000 ml)</p>
         <div class="water-controls">
           <button class="counter-btn" onclick="updateWater(-1)">-</button>
-          <button class="counter-btn" onclick="updateWater(1)">+1 Vaso de Agua</button>
+          <button class="counter-btn" onclick="updateWater(1)">+1 Vaso (250ml)</button>
         </div>
       </div>
 
       <div class="card">
         <div class="card-title">🔔 Alerta de Batido</div>
         <div class="input-group">
-          <select>
-            <option>9:00 a.m.</option>
-            <option>3:00 p.m.</option>
-            <option>8:00 p.m.</option>
-          </select>
+          <label>Configurar Hora Personalizada:</label>
+          <input type="time" id="shake-time" value="09:00">
         </div>
-        <button class="btn-action">Configurar Recordatorio</button>
+        <button class="btn-action" onclick="setShakeAlert()">Configurar Recordatorio</button>
       </div>
 
       <div class="card">
@@ -304,28 +303,19 @@
       <div class="card">
         <div class="card-title">📅 Días de Entrenamiento</div>
         <div class="days-grid">
-          <button class="day-btn active">L</button>
-          <button class="day-btn">M</button>
-          <button class="day-btn active">X</button>
-          <button class="day-btn">J</button>
-          <button class="day-btn active">V</button>
-          <button class="day-btn">S</button>
-          <button class="day-btn">D</button>
+          <button class="day-btn" onclick="toggleDay(this, 0)">L</button>
+          <button class="day-btn" onclick="toggleDay(this, 1)">M</button>
+          <button class="day-btn" onclick="toggleDay(this, 2)">X</button>
+          <button class="day-btn" onclick="toggleDay(this, 3)">J</button>
+          <button class="day-btn" onclick="toggleDay(this, 4)">V</button>
+          <button class="day-btn" onclick="toggleDay(this, 5)">S</button>
+          <button class="day-btn" onclick="toggleDay(this, 6)">D</button>
         </div>
       </div>
 
       <div class="card">
         <div class="card-title">💪 Rutina de Hoy</div>
-        <div id="routine-list">
-          <div class="exercise-item">
-            <span>🏋️‍♂️ 4x12 Press de Banca</span>
-            <input type="checkbox" class="checkbox-custom">
-          </div>
-          <div class="exercise-item">
-            <span>🦵 4x10 Sentadillas con Barra</span>
-            <input type="checkbox" class="checkbox-custom">
-          </div>
-        </div>
+        <div id="routine-list"></div>
       </div>
 
       <div class="card">
@@ -352,19 +342,19 @@
     <div id="tab-registro" class="tab-content">
       <div class="card">
         <div class="card-title">📊 Registro Corporal Completo</div>
-        <div class="input-group"><label>⚖️ Peso Actual (kg)</label><input type="number" step="0.1" placeholder="Ej. 78.5"></div>
-        <div class="input-group"><label>📏 Altura (cm)</label><input type="number" placeholder="Ej. 175"></div>
-        <div class="input-group"><label>💪 Brazos (cm)</label><input type="number" step="0.1" placeholder="Ej. 35"></div>
-        <div class="input-group"><label>🦵 Piernas (cm)</label><input type="number" step="0.1" placeholder="Ej. 58"></div>
-        <div class="input-group"><label>📐 Cintura / Medida (cm)</label><input type="number" step="0.1" placeholder="Ej. 80"></div>
-        <div class="input-group"><label>🍑 Glúteos (cm)</label><input type="number" step="0.1" placeholder="Ej. 95"></div>
-        <button class="btn-action">Guardar Métricas</button>
+        <div class="input-group"><label>⚖️ Peso Actual (kg)</label><input type="number" id="m-peso" step="0.1" placeholder="Ej. 78.5"></div>
+        <div class="input-group"><label>📏 Altura (cm)</label><input type="number" id="m-altura" placeholder="Ej. 175"></div>
+        <div class="input-group"><label>💪 Brazos (cm)</label><input type="number" id="m-brazos" step="0.1" placeholder="Ej. 35"></div>
+        <div class="input-group"><label>🦵 Piernas (cm)</label><input type="number" id="m-piernas" step="0.1" placeholder="Ej. 58"></div>
+        <div class="input-group"><label>📐 Cintura / Medida (cm)</label><input type="number" id="m-cintura" step="0.1" placeholder="Ej. 80"></div>
+        <div class="input-group"><label>🍑 Glúteos (cm)</label><input type="number" id="m-gluteos" step="0.1" placeholder="Ej. 95"></div>
+        <button class="btn-action" onclick="saveMetrics()">Guardar Métricas</button>
       </div>
     </div>
 
   </div>
 
-  <!-- NAVEGACIÓN INFERIOR CON EMOJIS / ICONOS -->
+  <!-- NAVEGACIÓN INFERIOR -->
   <nav class="nav-bar">
     <div class="nav-item active" onclick="switchTab('inicio', this)">
       <span class="icon">⚡</span>
@@ -385,6 +375,24 @@
   </nav>
 
   <script>
+    // Reproducción de sonido sintético para alarmas
+    function playBeep() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.8);
+      } catch (e) {
+        console.log('Audio no soportado');
+      }
+    }
+
     function switchTab(tabId, element) {
       document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
       document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
@@ -392,34 +400,106 @@
       element.classList.add('active');
     }
 
+    // Guardado de Estado Corporal
+    function saveMetrics() {
+      const metrics = {
+        peso: document.getElementById('m-peso').value,
+        altura: document.getElementById('m-altura').value,
+        brazos: document.getElementById('m-brazos').value,
+        piernas: document.getElementById('m-piernas').value,
+        cintura: document.getElementById('m-cintura').value,
+        gluteos: document.getElementById('m-gluteos').value
+      };
+      localStorage.setItem('cyberfit_metrics', JSON.stringify(metrics));
+      alert('¡Métricas guardadas exitosamente!');
+    }
+
+    function loadMetrics() {
+      const saved = localStorage.getItem('cyberfit_metrics');
+      if (saved) {
+        const m = JSON.parse(saved);
+        if (m.peso) document.getElementById('m-peso').value = m.peso;
+        if (m.altura) document.getElementById('m-altura').value = m.altura;
+        if (m.brazos) document.getElementById('m-brazos').value = m.brazos;
+        if (m.piernas) document.getElementById('m-piernas').value = m.piernas;
+        if (m.cintura) document.getElementById('m-cintura').value = m.cintura;
+        if (m.gluteos) document.getElementById('m-gluteos').value = m.gluteos;
+      }
+    }
+
+    // Hábitos e Hidratación
     function calcProgress() {
       const checks = document.querySelectorAll('.habit-check');
       let checked = 0;
-      checks.forEach(c => { if (c.checked) checked++; });
+      const states = [];
+      checks.forEach((c, idx) => { 
+        if (c.checked) checked++; 
+        states[idx] = c.checked;
+      });
+      localStorage.setItem('cyberfit_habits', JSON.stringify(states));
       const percent = Math.round((checked / checks.length) * 100);
       const fill = document.getElementById('progress-fill');
       fill.style.width = percent + '%';
       fill.innerText = percent + '%';
     }
 
-    let waterCount = 0;
+    let waterCount = parseInt(localStorage.getItem('cyberfit_water') || '0');
     function updateWater(val) {
       waterCount = Math.max(0, waterCount + val);
+      localStorage.setItem('cyberfit_water', waterCount);
       document.getElementById('water-count').innerText = waterCount;
+      document.getElementById('water-ml').innerText = waterCount * 250;
+    }
+
+    // Días de Entrenamiento
+    function toggleDay(btn, index) {
+      btn.classList.toggle('active');
+      let savedDays = JSON.parse(localStorage.getItem('cyberfit_days') || '[true,false,true,false,true,false,false]');
+      savedDays[index] = btn.classList.contains('active');
+      localStorage.setItem('cyberfit_days', JSON.stringify(savedDays));
+    }
+
+    function loadDays() {
+      let savedDays = JSON.parse(localStorage.getItem('cyberfit_days') || '[true,false,true,false,true,false,false]');
+      const btns = document.querySelectorAll('.days-grid .day-btn');
+      btns.forEach((btn, idx) => {
+        if (savedDays[idx]) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+    }
+
+    // Rutinas
+    let exercises = JSON.parse(localStorage.getItem('cyberfit_exercises') || '["🏋️‍♂️ 4x12 Press de Banca", "🦵 4x10 Sentadillas con Barra"]');
+    function renderExercises() {
+      const list = document.getElementById('routine-list');
+      list.innerHTML = '';
+      exercises.forEach((ex, idx) => {
+        const item = document.createElement('div');
+        item.className = 'exercise-item';
+        item.innerHTML = `<span>${ex}</span><input type="checkbox" class="checkbox-custom">`;
+        list.appendChild(item);
+      });
     }
 
     function addExercise() {
       const input = document.getElementById('exercise-input');
       if (input.value.trim() !== '') {
-        const list = document.getElementById('routine-list');
-        const item = document.createElement('div');
-        item.className = 'exercise-item';
-        item.innerHTML = `<span>⚡ ${input.value}</span><input type="checkbox" class="checkbox-custom">`;
-        list.appendChild(item);
+        exercises.push('⚡ ' + input.value.trim());
+        localStorage.setItem('cyberfit_exercises', JSON.stringify(exercises));
+        renderExercises();
         input.value = '';
       }
     }
 
+    // Alerta de batido
+    function setShakeAlert() {
+      const timeVal = document.getElementById('shake-time').value;
+      localStorage.setItem('cyberfit_shaketime', timeVal);
+      playBeep();
+      alert(`Recordatorio configurado para las ${timeVal}`);
+    }
+
+    // Temporizador
     let timerInterval;
     function startTimer(seconds) {
       clearInterval(timerInterval);
@@ -431,10 +511,29 @@
         display.innerText = `${mins}:${secs}`;
         if (--time < 0) {
           clearInterval(timerInterval);
+          playBeep();
           alert('¡Tiempo de descanso finalizado!');
         }
       }, 1000);
     }
+
+    // Carga inicial
+    window.onload = function() {
+      loadMetrics();
+      loadDays();
+      renderExercises();
+      updateWater(0);
+      
+      const savedHabits = JSON.parse(localStorage.getItem('cyberfit_habits') || '[false,false,false]');
+      savedHabits.forEach((st, idx) => {
+        const el = document.getElementById('habit-' + idx);
+        if (el) el.checked = st;
+      });
+      calcProgress();
+
+      const savedTime = localStorage.getItem('cyberfit_shaketime');
+      if (savedTime) document.getElementById('shake-time').value = savedTime;
+    };
   </script>
 </body>
 </html>
