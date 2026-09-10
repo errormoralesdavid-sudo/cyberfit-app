@@ -67,7 +67,6 @@
       letter-spacing: 1px;
     }
 
-    /* Barra de Progreso */
     .progress-bar-bg {
       background-color: var(--bg-color);
       border: 1px solid var(--neon-green);
@@ -91,7 +90,6 @@
       font-weight: bold;
     }
 
-    /* Días de Entrenamiento */
     .days-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
@@ -268,9 +266,22 @@
       display: flex;
       gap: 10px;
     }
+
+    .alarm-badge {
+      background-color: #122b1d;
+      border: 1px solid var(--neon-green);
+      color: var(--neon-green);
+      padding: 8px;
+      border-radius: 5px;
+      font-size: 0.85rem;
+      margin-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
   </style>
 </head>
-<body>
+<body onclick="unlockAudio()">
 
   <header>
     <h1>⚡ CYBERFIT APP ⚡</h1>
@@ -337,7 +348,8 @@
           <label>Configurar Hora Personalizada:</label>
           <input type="time" id="shake-time" value="09:00">
         </div>
-        <button class="btn-action" onclick="setShakeAlert()">Configurar Recordatorio</button>
+        <button class="btn-action" onclick="setShakeAlert()">Guardar Alerta de Batido</button>
+        <div id="shake-alarm-status" style="margin-top:8px;"></div>
         <button id="btn-stop-shake-alarm" class="btn-action btn-stop" onclick="stopAlarmLoop()">🚨 Detener Alerta</button>
       </div>
 
@@ -365,10 +377,13 @@
       <div class="card">
         <div class="card-title">⏰ Hora de Entrenamiento (Alarma)</div>
         <div class="input-group">
-          <label>Hora para Entrenar Hoy:</label>
+          <label>Hora para Entrenar Este Día:</label>
           <input type="time" id="workout-time" value="17:00">
         </div>
         <button class="btn-action" onclick="setWorkoutAlert()">Guardar Alerta de Entrenamiento</button>
+        <button class="btn-action" style="background:transparent; border:1px solid var(--neon-green); color:var(--neon-green); margin-top:5px;" onclick="testAlarmSound()">🔊 Probar Sonido de Alarma</button>
+        
+        <div id="day-alarm-display" style="margin-top:10px;"></div>
       </div>
 
       <div class="card">
@@ -437,44 +452,62 @@
     let audioLoopInterval = null;
     let audioCtx = null;
     let mainTimerWatcher = null;
+    let audioUnlocked = false;
 
-    // Permisos para Notificaciones Nativas
+    function unlockAudio() {
+      if (!audioUnlocked) {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        audioUnlocked = true;
+      }
+    }
+
     function requestNotificationPermission() {
+      unlockAudio();
       if ("Notification" in window) {
         Notification.requestPermission().then(permission => {
           if (permission === "granted") {
-            alert("¡Notificaciones activadas con éxito!");
-            new Notification("CyberFit App", { body: "Las notificaciones están configuradas." });
+            alert("¡Notificaciones activadas!");
+            sendNativeNotification("CyberFit App", "Notificaciones configuradas correctamente.");
           } else {
-            alert("No se otorgaron permisos de notificación.");
+            alert("No se otorgaron permisos.");
           }
         });
       } else {
-        alert("Tu navegador no soporta notificaciones.");
+        alert("Navegador no soporta notificaciones.");
       }
     }
 
     function sendNativeNotification(title, message) {
       if ("Notification" in window && Notification.permission === "granted") {
-        new Notification(title, { body: message });
+        try {
+          new Notification(title, { body: message });
+        } catch(e) {
+          console.log("Error al lanzar notificación native:", e);
+        }
       }
     }
 
-    // Audio de Alarma
     function playAlarmTone() {
       try {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start();
         osc.stop(audioCtx.currentTime + 0.4);
       } catch (e) {
-        console.log('Audio no disponible');
+        console.log('Audio no disponible:', e);
       }
     }
 
@@ -495,7 +528,14 @@
       document.getElementById('btn-stop-shake-alarm').style.display = 'none';
     }
 
+    function testAlarmSound() {
+      unlockAudio();
+      startAlarmLoop();
+      setTimeout(stopAlarmLoop, 2500);
+    }
+
     function switchTab(tabId, element) {
+      unlockAudio();
       document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
       document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
       document.getElementById('tab-' + tabId).classList.add('active');
@@ -554,7 +594,7 @@
       fill.innerText = percent + '%';
     }
 
-    // Configuración y Control de Agua Personalizado
+    // Agua
     let waterCurrent = 0;
 
     function saveWaterConfig() {
@@ -601,6 +641,7 @@
       const savedWorkoutTimes = JSON.parse(localStorage.getItem('cyberfit_workout_times') || '{}');
       document.getElementById('workout-time').value = savedWorkoutTimes[dayIdx] || '17:00';
 
+      updateAlarmDisplay();
       renderExercises();
     }
 
@@ -677,19 +718,61 @@
       }
     }
 
-    // Alarmas
+    // Guardado y Despliegue de Alarmas
     function setShakeAlert() {
+      unlockAudio();
       const timeVal = document.getElementById('shake-time').value;
       localStorage.setItem('cyberfit_shaketime', timeVal);
+      updateShakeStatus();
       alert(`Alerta de batido guardada para las ${timeVal}`);
     }
 
+    function updateShakeStatus() {
+      const saved = localStorage.getItem('cyberfit_shaketime');
+      const box = document.getElementById('shake-alarm-status');
+      if (saved) {
+        box.innerHTML = `<div class="alarm-badge"><span>🔔 Alerta Activa: <b>${saved}</b></span><button style="background:transparent; border:none; color:var(--danger-color); cursor:pointer;" onclick="deleteShakeAlert()">❌</button></div>`;
+      } else {
+        box.innerHTML = `<p style="font-size:0.75rem; color:#7a9e8c;">Sin alarma activa</p>`;
+      }
+    }
+
+    function deleteShakeAlert() {
+      localStorage.removeItem('cyberfit_shaketime');
+      updateShakeStatus();
+    }
+
     function setWorkoutAlert() {
+      unlockAudio();
       const timeVal = document.getElementById('workout-time').value;
       const savedWorkoutTimes = JSON.parse(localStorage.getItem('cyberfit_workout_times') || '{}');
       savedWorkoutTimes[currentSelectedDay] = timeVal;
       localStorage.setItem('cyberfit_workout_times', JSON.stringify(savedWorkoutTimes));
+      updateAlarmDisplay();
       alert(`Alerta de entrenamiento guardada para el ${dayNames[currentSelectedDay]} a las ${timeVal}`);
+    }
+
+    function deleteWorkoutAlert(dayIdx) {
+      const savedWorkoutTimes = JSON.parse(localStorage.getItem('cyberfit_workout_times') || '{}');
+      delete savedWorkoutTimes[dayIdx];
+      localStorage.setItem('cyberfit_workout_times', JSON.stringify(savedWorkoutTimes));
+      updateAlarmDisplay();
+    }
+
+    function updateAlarmDisplay() {
+      const savedWorkoutTimes = JSON.parse(localStorage.getItem('cyberfit_workout_times') || '{}');
+      const timeForDay = savedWorkoutTimes[currentSelectedDay];
+      const display = document.getElementById('day-alarm-display');
+
+      if (timeForDay) {
+        display.innerHTML = `
+          <div class="alarm-badge">
+            <span>⏰ Alerta para <b>${dayNames[currentSelectedDay]}</b>: <b>${timeForDay}</b></span>
+            <button style="background:transparent; border:none; color:var(--danger-color); cursor:pointer;" onclick="deleteWorkoutAlert(${currentSelectedDay})">❌ Eliminar</button>
+          </div>`;
+      } else {
+        display.innerHTML = `<p style="font-size:0.75rem; color:#7a9e8c;">No hay alarma de entrenamiento configurada para el ${dayNames[currentSelectedDay]}.</p>`;
+      }
     }
 
     function startGlobalTimerWatcher() {
@@ -699,26 +782,29 @@
         const currentHM = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
         const todayIdx = (now.getDay() + 6) % 7;
 
-        // Verificar Alerta de Batido
-        const shakeTime = localStorage.getItem('cyberfit_shaketime');
-        if (shakeTime && currentHM === shakeTime && now.getSeconds() === 0) {
-          sendNativeNotification("CyberFit App", "🥛 ¡Es hora de tomar tu batido de proteína!");
-          startAlarmLoop();
-        }
+        if (now.getSeconds() === 0) {
+          // Alerta de Batido
+          const shakeTime = localStorage.getItem('cyberfit_shaketime');
+          if (shakeTime && currentHM === shakeTime) {
+            sendNativeNotification("CyberFit App", "🥛 ¡Es hora de tomar tu batido de proteína!");
+            startAlarmLoop();
+          }
 
-        // Verificar Alerta de Entrenamiento
-        const savedWorkoutTimes = JSON.parse(localStorage.getItem('cyberfit_workout_times') || '{}');
-        const todayWorkoutTime = savedWorkoutTimes[todayIdx];
-        if (todayWorkoutTime && currentHM === todayWorkoutTime && now.getSeconds() === 0) {
-          sendNativeNotification("CyberFit App", "🏋️ ¡Hora de entrenar! Revisa tu rutina del día.");
-          startAlarmLoop();
+          // Alerta de Entrenamiento
+          const savedWorkoutTimes = JSON.parse(localStorage.getItem('cyberfit_workout_times') || '{}');
+          const todayWorkoutTime = savedWorkoutTimes[todayIdx];
+          if (todayWorkoutTime && currentHM === todayWorkoutTime) {
+            sendNativeNotification("CyberFit App", "🏋️ ¡Hora de entrenar! Revisa tu rutina del día.");
+            startAlarmLoop();
+          }
         }
       }, 1000);
     }
 
-    // Temporizador Descanso
+    // Temporizador
     let timerInterval;
     function startTimer(seconds) {
+      unlockAudio();
       clearInterval(timerInterval);
       stopAlarmLoop();
       let time = seconds;
@@ -758,6 +844,7 @@
       if (savedShakeTime) {
         document.getElementById('shake-time').value = savedShakeTime;
       }
+      updateShakeStatus();
 
       startGlobalTimerWatcher();
     };
