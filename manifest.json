@@ -1,0 +1,16 @@
+{
+  "short_name": "CyberFit",
+  "name": "CyberFit Fitness App",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2964/2964514.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#050b08",
+  "theme_color": "#00ff66",
+  "display": "standalone",
+  "orientation": "portrait"
+}
