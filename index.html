@@ -12,6 +12,7 @@
       --text-color: #e0eee8;
       --border-color: #1b3a27;
       --hover-color: #00cc52;
+      --danger-color: #ff3366;
     }
 
     * {
@@ -182,6 +183,19 @@
       margin-top: 5px;
     }
 
+    .btn-stop {
+      background-color: var(--danger-color) !important;
+      color: #ffffff !important;
+      display: none;
+      box-shadow: 0 0 12px rgba(255, 51, 102, 0.6);
+      animation: pulse 1s infinite alternate;
+    }
+
+    @keyframes pulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.02); }
+    }
+
     /* Pestañas */
     .tab-content {
       display: none;
@@ -231,6 +245,21 @@
       justify-content: space-between;
       padding: 10px 0;
       border-bottom: 1px solid var(--border-color);
+    }
+
+    .exercise-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-delete {
+      background: transparent;
+      border: none;
+      color: var(--danger-color);
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 2px 6px;
     }
 
     .checkbox-custom {
@@ -322,7 +351,7 @@
         <div class="card-title">✏️ Personalizar Ejercicio</div>
         <div class="input-group">
           <label>Nombre del Ejercicio y Series</label>
-          <input type="text" id="exercise-input" placeholder="Ej: 3x15 Dominadas">
+          <input type="text" id="exercise-input" placeholder="Ej: 🤸 3x15 Dominadas">
         </div>
         <button class="btn-action" onclick="addExercise()">Agregar Ejercicio</button>
       </div>
@@ -335,6 +364,7 @@
         <h2 id="timer-display" style="font-size:2.8rem; color:var(--neon-green); margin:15px 0;">01:30</h2>
         <button class="btn-action" onclick="startTimer(90)">Iniciar 90s Descanso</button>
         <button class="btn-action" style="background:transparent; border:1px solid var(--neon-green); color:var(--neon-green);" onclick="startTimer(60)">Iniciar 60s Descanso</button>
+        <button id="btn-stop-alarm" class="btn-action btn-stop" onclick="stopAlarmLoop()">🚨 Detener Alerta</button>
       </div>
     </div>
 
@@ -375,22 +405,40 @@
   </nav>
 
   <script>
-    // Reproducción de sonido sintético para alarmas
-    function playBeep() {
+    // Audio en Bucle
+    let audioLoopInterval = null;
+    let audioCtx = null;
+
+    function playAlarmTone() {
       try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.type = 'sine';
+        osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start();
-        osc.stop(audioCtx.currentTime + 0.8);
+        osc.stop(audioCtx.currentTime + 0.4);
       } catch (e) {
-        console.log('Audio no soportado');
+        console.log('Audio no disponible');
       }
+    }
+
+    function startAlarmLoop() {
+      stopAlarmLoop();
+      playAlarmTone();
+      audioLoopInterval = setInterval(playAlarmTone, 600);
+      document.getElementById('btn-stop-alarm').style.display = 'block';
+    }
+
+    function stopAlarmLoop() {
+      if (audioLoopInterval) {
+        clearInterval(audioLoopInterval);
+        audioLoopInterval = null;
+      }
+      document.getElementById('btn-stop-alarm').style.display = 'none';
     }
 
     function switchTab(tabId, element) {
@@ -398,6 +446,17 @@
       document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
       document.getElementById('tab-' + tabId).classList.add('active');
       element.classList.add('active');
+    }
+
+    // Comprobación de cambio de día para reinicio diario de hábitos
+    function checkDailyReset() {
+      const today = new Date().toDateString();
+      const lastVisit = localStorage.getItem('cyberfit_last_date');
+      if (lastVisit !== today) {
+        localStorage.setItem('cyberfit_last_date', today);
+        localStorage.setItem('cyberfit_habits', JSON.stringify([false, false, true])); // Las medidas se mantienen activadas
+        localStorage.setItem('cyberfit_water', '0');
+      }
     }
 
     // Guardado de Estado Corporal
@@ -443,7 +502,7 @@
       fill.innerText = percent + '%';
     }
 
-    let waterCount = parseInt(localStorage.getItem('cyberfit_water') || '0');
+    let waterCount = 0;
     function updateWater(val) {
       waterCount = Math.max(0, waterCount + val);
       localStorage.setItem('cyberfit_water', waterCount);
@@ -468,15 +527,21 @@
       });
     }
 
-    // Rutinas
-    let exercises = JSON.parse(localStorage.getItem('cyberfit_exercises') || '["🏋️‍♂️ 4x12 Press de Banca", "🦵 4x10 Sentadillas con Barra"]');
+    // Rutinas con eliminación
+    let exercises = JSON.parse(localStorage.getItem('cyberfit_exercises') || '["🏋️‍♂️ 4x12 Press de Banca", "🦵 4x10 Sentadillas con Barra", "🦵 4x5 Sentadillas"]');
+    
     function renderExercises() {
       const list = document.getElementById('routine-list');
       list.innerHTML = '';
       exercises.forEach((ex, idx) => {
         const item = document.createElement('div');
         item.className = 'exercise-item';
-        item.innerHTML = `<span>${ex}</span><input type="checkbox" class="checkbox-custom">`;
+        item.innerHTML = `
+          <span>${ex}</span>
+          <div class="exercise-actions">
+            <input type="checkbox" class="checkbox-custom">
+            <button class="btn-delete" onclick="deleteExercise(${idx})" title="Eliminar ejercicio">❌</button>
+          </div>`;
         list.appendChild(item);
       });
     }
@@ -484,18 +549,23 @@
     function addExercise() {
       const input = document.getElementById('exercise-input');
       if (input.value.trim() !== '') {
-        exercises.push('⚡ ' + input.value.trim());
+        exercises.push(input.value.trim());
         localStorage.setItem('cyberfit_exercises', JSON.stringify(exercises));
         renderExercises();
         input.value = '';
       }
     }
 
+    function deleteExercise(index) {
+      exercises.splice(index, 1);
+      localStorage.setItem('cyberfit_exercises', JSON.stringify(exercises));
+      renderExercises();
+    }
+
     // Alerta de batido
     function setShakeAlert() {
       const timeVal = document.getElementById('shake-time').value;
       localStorage.setItem('cyberfit_shaketime', timeVal);
-      playBeep();
       alert(`Recordatorio configurado para las ${timeVal}`);
     }
 
@@ -503,6 +573,7 @@
     let timerInterval;
     function startTimer(seconds) {
       clearInterval(timerInterval);
+      stopAlarmLoop();
       let time = seconds;
       const display = document.getElementById('timer-display');
       timerInterval = setInterval(() => {
@@ -511,20 +582,22 @@
         display.innerText = `${mins}:${secs}`;
         if (--time < 0) {
           clearInterval(timerInterval);
-          playBeep();
-          alert('¡Tiempo de descanso finalizado!');
+          startAlarmLoop();
         }
       }, 1000);
     }
 
     // Carga inicial
     window.onload = function() {
+      checkDailyReset();
       loadMetrics();
       loadDays();
       renderExercises();
+
+      waterCount = parseInt(localStorage.getItem('cyberfit_water') || '0');
       updateWater(0);
       
-      const savedHabits = JSON.parse(localStorage.getItem('cyberfit_habits') || '[false,false,false]');
+      const savedHabits = JSON.parse(localStorage.getItem('cyberfit_habits') || '[false,false,true]');
       savedHabits.forEach((st, idx) => {
         const el = document.getElementById('habit-' + idx);
         if (el) el.checked = st;
