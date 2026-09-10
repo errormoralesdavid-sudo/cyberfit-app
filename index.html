@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyberFit App</title>
+  <style>
+    :root {
+      --bg-color: #000000;
+      --card-bg: #111612;
+      --neon-green: #00FF66;
+      --neon-dark: #00CC52;
+      --text-color: #FFFFFF;
+      --text-dim: #80A88D;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 420px;
+      padding: 15px;
+      box-sizing: border-box;
+      padding-bottom: 80px; /* Espacio para el menú inferior */
+    }
+
+    .header {
+      border-bottom: 2px solid var(--neon-green);
+      padding-bottom: 10px;
+      text-align: center;
+      margin-bottom: 15px;
+    }
+
+    .header h1 {
+      color: var(--neon-green);
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px var(--neon-green);
+    }
+
+    /* Navegación por Pestañas (Secciones) */
+    .tab-content {
+      display: none;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .tab-content.active {
+      display: flex;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid rgba(0, 255, 102, 0.3);
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 0 10px rgba(0, 255, 102, 0.1);
+    }
+
+    .card h3 {
+      margin-top: 0;
+      color: var(--neon-green);
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Barra de progreso */
+    .progress-bar-bg {
+      background-color: #050a06;
+      border: 1px solid var(--neon-green);
+      border-radius: 10px;
+      height: 25px;
+      width: 100%;
+      overflow: hidden;
+      position: relative;
+      margin-top: 5px;
+    }
+
+    .progress-bar-fill {
+      background: linear-gradient(90deg, var(--neon-dark), var(--neon-green));
+      height: 100%;
+      width: 0%;
+      transition: width 0.4s ease;
+      box-shadow: 0 0 12px var(--neon-green);
+    }
+
+    .progress-text {
+      position: absolute;
+      width: 100%;
+      text-align: center;
+      top: 3px;
+      font-weight: bold;
+      color: #000;
+      font-size: 13px;
+    }
+
+    /* Checkboxes */
+    .task-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .task-item input[type="checkbox"] {
+      accent-color: var(--neon-green);
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+
+    /* Calendario Cyber */
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .day-header {
+      font-size: 11px;
+      color: var(--neon-green);
+      font-weight: bold;
+    }
+
+    .day-btn {
+      background: #000;
+      border: 1px solid var(--text-dim);
+      color: #fff;
+      padding: 8px 0;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .day-btn.active {
+      border-color: var(--neon-green);
+      background: rgba(0, 255, 102, 0.2);
+      color: var(--neon-green);
+      font-weight: bold;
+      box-shadow: 0 0 6px var(--neon-green);
+    }
+
+    /* Temporizador */
+    .timer-display {
+      font-size: 36px;
+      text-align: center;
+      color: var(--neon-green);
+      font-weight: bold;
+      margin: 15px 0;
+      text-shadow: 0 0 10px var(--neon-green);
+    }
+
+    /* Inputs y Botones */
+    input[type="number"], input[type="time"] {
+      background: #000;
+      border: 1px solid var(--neon-green);
+      color: var(--neon-green);
+      padding: 8px;
+      border-radius: 6px;
+      width: 100%;
+      box-sizing: border-box;
+      margin-bottom: 10px;
+    }
+
+    button {
+      background-color: var(--neon-green);
+      color: #000;
+      border: none;
+      padding: 10px 15px;
+      font-weight: bold;
+      border-radius: 6px;
+      width: 100%;
+      cursor: pointer;
+      box-shadow: 0 0 8px var(--neon-green);
+      text-transform: uppercase;
+    }
+
+    /* Navbar Inferior */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      max-width: 420px;
+      background: #000;
+      border-top: 2px solid var(--neon-green);
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0;
+      box-shadow: 0 -4px 15px rgba(0, 255, 102, 0.2);
+    }
+
+    .nav-item {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+      box-shadow: none;
+      padding: 0;
+      width: auto;
+    }
+
+    .nav-item.active {
+      color: var(--neon-green);
+      text-shadow: 0 0 8px var(--neon-green);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <div class="header">
+      <h1>CYBERFIT APP</h1>
+    </div>
+
+    <!-- SECCIÓN 1: INICIO Y PROGRESO -->
+    <div id="sec-inicio" class="tab-content active">
+      <div class="card">
+        <h3>Progreso Diario</h3>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progressBar"></div>
+          <div class="progress-text" id="progressText">0% COMPLETADO</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Hábitos Diarios</h3>
+        <div class="task-item">
+          <input type="checkbox" class="cyber-check" onclick="updateProgress()">
+          <label>Tomar Batido de Proteína</label>
+        </div>
+        <div class="task-item">
+          <input type="checkbox" class="cyber-check" onclick="updateProgress()">
+          <label>Completar Entrenamiento</label>
+        </div>
+        <div class="task-item">
+          <input type="checkbox" class="cyber-check" onclick="updateProgress()">
+          <label>Registrar Peso / Medidas</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Alerta de Batido</h3>
+        <input type="time" id="shakeTime" value="09:00">
+        <button onclick="setNotification()">Configurar Recordatorio</button>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 2: CALENDARIO Y RUTINAS -->
+    <div id="sec-rutinas" class="tab-content">
+      <div class="card">
+        <h3>Días de Entrenamiento</h3>
+        <p style="font-size: 12px; color: var(--text-dim); margin-top:0;">Toca los días que vas a entrenar esta semana:</p>
+        <div class="calendar-grid">
+          <div class="day-header">L</div>
+          <div class="day-header">M</div>
+          <div class="day-header">X</div>
+          <div class="day-header">J</div>
+          <div class="day-header">V</div>
+          <div class="day-header">S</div>
+          <div class="day-header">D</div>
+
+          <div class="day-btn" onclick="toggleDay(this)">LUN</div>
+          <div class="day-btn" onclick="toggleDay(this)">MAR</div>
+          <div class="day-btn" onclick="toggleDay(this)">MIÉ</div>
+          <div class="day-btn" onclick="toggleDay(this)">JUE</div>
+          <div class="day-btn" onclick="toggleDay(this)">VIE</div>
+          <div class="day-btn" onclick="toggleDay(this)">SÁB</div>
+          <div class="day-btn" onclick="toggleDay(this)">DOM</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Rutina de hoy</h3>
+        <div class="task-item">
+          <input type="checkbox" class="cyber-check" onclick="updateProgress()">
+          <label>4x12 Press de Banca</label>
+        </div>
+        <div class="task-item">
+          <input type="checkbox" class="cyber-check" onclick="updateProgress()">
+          <label>4x10 Sentadillas con Barra</label>
+        </div>
+        <div class="task-item">
+          <input type="checkbox" class="cyber-check" onclick="updateProgress()">
+          <label>3x15 Dominadas</label>
+        </div>
+        <div class="task-item">
+          <input type="checkbox" class="cyber-check" onclick="updateProgress()">
+          <label>3x12 Curls Biceps</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 3: TEMPORIZADOR -->
+    <div id="sec-cronometro" class="tab-content">
+      <div class="card" style="text-align: center;">
+        <h3>Descanso Entre Series</h3>
+        <div class="timer-display" id="timer">01:30</div>
+        <button onclick="startTimer(90)">Iniciar 90s Descanso</button>
+        <br><br>
+        <button onclick="startTimer(60)" style="background: transparent; border: 1px solid var(--neon-green); color: var(--neon-green);">Iniciar 60s Descanso</button>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 4: MEDIDAS Y REGISTRO -->
+    <div id="sec-registro" class="tab-content">
+      <div class="card">
+        <h3>Registro Corporal</h3>
+        <label style="font-size: 12px; color: var(--text-dim);">Peso Actual (kg):</label>
+        <input type="number" id="weightInput" placeholder="Ej. 78.5">
+        <label style="font-size: 12px; color: var(--text-dim);">Cintura / Medida (cm):</label>
+        <input type="number" id="waistInput" placeholder="Ej. 80">
+        <button onclick="saveMetrics()">Guardar Métricas</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- NAVEGACIÓN INFERIOR (TABS) -->
+  <div class="bottom-nav">
+    <button class="nav-item active" onclick="showTab('sec-inicio', this)">
+      <span>⚡</span>
+      <span>Inicio</span>
+    </button>
+    <button class="nav-item" onclick="showTab('sec-rutinas', this)">
+      <span>📅</span>
+      <span>Rutinas</span>
+    </button>
+    <button class="nav-item" onclick="showTab('sec-cronometro', this)">
+      <span>⏱️</span>
+      <span>Descanso</span>
+    </button>
+    <button class="nav-item" onclick="showTab('sec-registro', this)">
+      <span>📊</span>
+      <span>Registro</span>
+    </button>
+  </div>
+
+  <script>
+    // Cambiar entre Pestañas/Secciones
+    function showTab(tabId, btn) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+      
+      document.getElementById(tabId).classList.add('active');
+      btn.classList.add('active');
+    }
+
+    // Barra de Progreso
+    function updateProgress() {
+      const checkboxes = document.querySelectorAll('.cyber-check');
+      let checkedCount = 0;
+      checkboxes.forEach(box => {
+        if (box.checked) checkedCount++;
+      });
+      const percentage = Math.round((checkedCount / checkboxes.length) * 100);
+      document.getElementById('progressBar').style.width = percentage + '%';
+      document.getElementById('progressText').innerText = percentage + '% COMPLETADO';
+    }
+
+    // Seleccionar Días de Calendario
+    function toggleDay(btn) {
+      btn.classList.toggle('active');
+    }
+
+    // Temporizador
+    let timerInterval;
+    function startTimer(seconds) {
+      clearInterval(timerInterval);
+      let timeLeft = seconds;
+      
+      timerInterval = setInterval(() => {
+        let mins = Math.floor(timeLeft / 60);
+        let secs = timeLeft % 60;
+        mins = mins < 10 ? '0' + mins : mins;
+        secs = secs < 10 ? '0' + secs : secs;
+        
+        document.getElementById('timer').innerText = `${mins}:${secs}`;
+        
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          alert('⚡ ¡DESCANSO TERMINADO! Vamos a la siguiente serie.');
+        }
+        timeLeft--;
+      }, 1000);
+    }
+
+    // Notificaciones
+    function setNotification() {
+      const time = document.getElementById('shakeTime').value;
+      alert('Alerta de batido programada para las: ' + time);
+    }
+
+    // Guardar Peso y Medidas
+    function saveMetrics() {
+      const weight = document.getElementById('weightInput').value;
+      const waist = document.getElementById('waistInput').value;
+      if(weight || waist) {
+        alert('Métricas guardadas exitosamente.\nPeso: ' + weight + ' kg\nMedida: ' + waist + ' cm');
+      } else {
+        alert('Ingresa al menos un dato.');
+      }
+    }
+  </script>
+</body>
+</html>
